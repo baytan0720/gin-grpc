@@ -32,10 +32,8 @@ func New(srv any) *Engine {
 		handlers: make(map[string]HandlersChain),
 	}
 
-	e.s = grpc.NewServer(grpc.UnaryInterceptor(e.handleInterceptor()))
-	e.pool.New = func() any {
-		return e.allocateContext()
-	}
+	engine.allocateHandlers()
+
 	engine.s = grpc.NewServer(grpc.UnaryInterceptor(engine.handleInterceptor()))
 
 	engine.pool.New = func() any {
@@ -80,6 +78,10 @@ func (engine *Engine) Run(addr ...string) error {
 
 // Handle registers a handler for the rpc
 func (engine *Engine) Handle(funcName string, handler ...HandlerFunc) {
+	if _, ok := engine.handlers[funcName]; !ok {
+		panic(fmt.Sprintf("handle a non-exist rpc: %s", funcName))
+	}
+
 	engine.handlers[funcName] = append(engine.handlers[funcName], handler...)
 }
 
@@ -129,6 +131,20 @@ func (engine *Engine) handleInterceptor() grpc.UnaryServerInterceptor {
 		resp = c.Resp
 
 		return
+	}
+}
+
+func (engine *Engine) getFuncNames() []string {
+	var funcNames []string
+	for i := 0; i < reflect.TypeOf(engine.Srv).NumMethod(); i++ {
+		funcNames = append(funcNames, reflect.TypeOf(engine.Srv).Method(i).Name)
+	}
+	return funcNames
+}
+
+func (engine *Engine) allocateHandlers() {
+	for _, funcName := range engine.getFuncNames() {
+		engine.handlers[funcName] = HandlersChain{}
 	}
 }
 
