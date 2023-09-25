@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package proto;
+option go_package="./proto";
+
+message PingReq {
+  string id = 1;
+}
+
+message PongRes {
+  int32 status = 1;
+}
+
+service Hello {
+  rpc Ping(PingReq) returns (PongRes);
+}
