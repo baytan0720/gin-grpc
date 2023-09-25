@@ -3,26 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
-	"net"
 
 	gin "github.com/baytan0720/gin-grpc"
 	"github.com/baytan0720/gin-grpc/example/proto"
 )
 
-func main() {
-	panic(serve())
-}
-
 type Server struct {
 	proto.UnimplementedHelloServer
 }
 
-func serve() error {
-	l, err := net.Listen("tcp", ":8080")
-	if err != nil {
-		return err
-	}
-
+func main() {
 	e := gin.Default(&Server{})
 	proto.RegisterHelloServer(e, e.Srv.(*Server))
 
@@ -35,7 +25,7 @@ func serve() error {
 		})
 	})
 
-	return e.Serve(l)
+	panic(e.Run()) // listen and serve on 8080
 }
 
 func (s *Server) Ping(ctx context.Context, req *proto.PingReq) (*proto.PongRes, error) {
