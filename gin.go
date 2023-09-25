@@ -14,9 +14,6 @@ import (
 // HandlerFunc is gin-grpc handler
 type HandlerFunc func(*Context)
 
-// HandlersChain is gin-grpc handler chain
-type HandlersChain []HandlerFunc
-
 // Engine is gin-grpc engine
 type Engine struct {
 	s   *grpc.Server
@@ -27,8 +24,9 @@ type Engine struct {
 	pool sync.Pool
 }
 
+// New creates a new gin-grpc engine
 func New(srv any) *Engine {
-	e := &Engine{
+	engine := &Engine{
 		Srv: srv,
 
 		handlers: make(map[string]HandlersChain),
@@ -38,8 +36,20 @@ func New(srv any) *Engine {
 	e.pool.New = func() any {
 		return e.allocateContext()
 	}
+	engine.s = grpc.NewServer(grpc.UnaryInterceptor(engine.handleInterceptor()))
 
-	return e
+	engine.pool.New = func() any {
+		return engine.allocateContext()
+	}
+
+	return engine
+}
+
+// Default creates a new gin-grpc engine with the Recovery middleware already attached
+func Default(srv any) *Engine {
+	engine := New(srv)
+	engine.Use(Recovery())
+	return engine
 }
 
 // RegisterService implements grpc.ServiceRegistrar interface
@@ -73,10 +83,10 @@ func (engine *Engine) Handle(funcName string, handler ...HandlerFunc) {
 	engine.handlers[funcName] = append(engine.handlers[funcName], handler...)
 }
 
-// Use registers a handler for all rpc
-func (engine *Engine) Use(handler ...HandlerFunc) {
+// Use registers a middleware for all rpc
+func (engine *Engine) Use(middleware ...HandlerFunc) {
 	for funcName := range engine.handlers {
-		engine.handlers[funcName] = append(engine.handlers[funcName], handler...)
+		engine.handlers[funcName] = append(engine.handlers[funcName], middleware...)
 	}
 }
 
@@ -127,6 +137,16 @@ func (engine *Engine) validateHandlers() error {
 		if _, ok := reflect.TypeOf(engine.Srv).MethodByName(funcName); !ok {
 			return fmt.Errorf("rpc func not found: %s", funcName)
 		}
+	}
+	return nil
+}
+
+// HandlersChain is gin-grpc handler chain
+type HandlersChain []HandlerFunc
+
+func (c HandlersChain) Last() HandlerFunc {
+	if length := len(c); length > 0 {
+		return c[length-1]
 	}
 	return nil
 }

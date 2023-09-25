@@ -23,7 +23,7 @@ func serve() error {
 		return err
 	}
 
-	e := gin.New(&Server{})
+	e := gin.Default(&Server{})
 	proto.RegisterHelloServer(e, e.Srv.(*Server))
 
 	e.Handle("Ping", func(c *gin.Context) {
