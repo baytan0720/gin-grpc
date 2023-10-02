@@ -242,3 +242,17 @@ func (c *Context) GetStringMapStringSlice(key string) (smss map[string][]string)
 	}
 	return
 }
+
+// StoreRequestIntoKeys stores the all params of request into keys.
+// It better be a flattening struct, not a nested struct.
+// The keys are the field names of the struct.
+func StoreRequestIntoKeys() HandlerFunc {
+	return func(c *Context) {
+		v := reflect.ValueOf(c.Req).Elem()
+		for i := 0; i < v.NumField(); i++ {
+			if v.Field(i).CanInterface() {
+				c.Set(v.Type().Field(i).Name, v.Field(i).Interface())
+			}
+		}
+	}
+}

@@ -16,10 +16,13 @@ func main() {
 	e := gin.Default(&Server{})
 	proto.RegisterHelloServer(e, e.Srv.(*Server))
 
+	e.Use(gin.StoreRequestIntoKeys())
+
 	e.Handle("Ping", func(c *gin.Context) {
 		var req *proto.PingReq
 		c.BindRequest(&req)
 		fmt.Printf("ID: %s\n", req.Id)
+		fmt.Printf("ID: %s\n", c.GetString("Id"))
 		c.Response(&proto.PongRes{
 			Status: 1,
 		})
