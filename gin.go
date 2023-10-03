@@ -64,22 +64,29 @@ func (engine *Engine) Serve(l net.Listener) error {
 	return engine.s.Serve(l)
 }
 
-func (engine *Engine) Run(addr ...string) error {
-	if len(addr) == 0 {
-		addr = []string{":8080"}
-	}
-	l, err := net.Listen("tcp", addr[0])
+// Run runs the grpc server on address
+func (engine *Engine) Run(addr ...string) (err error) {
+	defer func() { debugPrintError(err) }()
+
+	address := resolveAddress(addr)
+
+	var l net.Listener
+	l, err = net.Listen("tcp", address)
 	if err != nil {
 		return err
 	}
 
-	return engine.Serve(l)
+	engine.printHandlers()
+	debugPrint("Listening and serving HTTP on %s\n", address)
+	err = engine.Serve(l)
+
+	return
 }
 
 // Handle registers a handler for the rpc
 func (engine *Engine) Handle(funcName string, handler ...HandlerFunc) {
 	if _, ok := engine.handlers[funcName]; !ok {
-		panic(fmt.Sprintf("handle a non-exist rpc: %s", funcName))
+		panic(fmt.Errorf("handle a non-exist rpc: %s", funcName))
 	}
 
 	engine.handlers[funcName] = append(engine.handlers[funcName], handler...)
@@ -125,7 +132,7 @@ func (engine *Engine) handleInterceptor() grpc.UnaryServerInterceptor {
 		}
 
 		if reflect.TypeOf(c.Resp) != reflect.TypeOf(resp) {
-			return nil, fmt.Errorf("response type mismatch: %s != %s", reflect.TypeOf(c.Resp).Name(), reflect.TypeOf(resp).Name())
+			return nil, fmt.Errorf("internal error: response type mismatch: %s != %s", reflect.TypeOf(c.Resp).Name(), reflect.TypeOf(resp).Name())
 		}
 
 		resp = c.Resp
@@ -155,6 +162,12 @@ func (engine *Engine) validateHandlers() error {
 		}
 	}
 	return nil
+}
+
+func (engine *Engine) printHandlers() {
+	for funcName, handlers := range engine.handlers {
+		debugPrintHandler(funcName, handlers)
+	}
 }
 
 // HandlersChain is gin-grpc handler chain
