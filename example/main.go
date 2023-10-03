@@ -37,7 +37,7 @@ func main() {
 		//})
 	})
 
-	panic(e.Run()) // listen and serve on 8080
+	e.Run() // listen and serve on 8080
 }
 
 func (s *Server) Ping(ctx context.Context, req *proto.PingReq) (*proto.PongRes, error) {

@@ -80,21 +80,34 @@ func main() {
 	e := gin.Default(&Server{})
 	proto.RegisterHelloServer(e, e.Srv.(*Server))
 
+	e.Use(gin.StoreRequestIntoKeys())
+
 	e.Handle("Ping", func(c *gin.Context) {
 		var req *proto.PingReq
 		c.BindRequest(&req)
 		fmt.Printf("ID: %s\n", req.Id)
+		fmt.Printf("ID: %s\n", c.GetString("Id"))
+		fmt.Printf("ID: %s\n", c.Req.GetField("Id"))
 		c.Response(&proto.PongRes{
 			Status: 1,
 		})
+
+		// another way to response:
+		//
+		//c.ResponseField("Status", int32(1))
+		//
+		//c.ResponseFields(gin.H{
+		//	"Status": int32(1),
+		//})
 	})
 
-	panic(e.Run()) // listen and serve on 0.0.0.0:8080
+	e.Run() // listen and serve on 8080
 }
 
 func (s *Server) Ping(ctx context.Context, req *proto.PingReq) (*proto.PongRes, error) {
 	return &proto.PongRes{}, nil
 }
+
 ```
 
 You just need to define a struct and implement the interface `proto.HelloServer` without any logic.
