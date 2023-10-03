@@ -93,7 +93,7 @@ func (engine *Engine) Handle(funcName string, handler ...HandlerFunc) {
 }
 
 func (engine *Engine) HandleFunc(handler ...HandlerFunc) {
-	funcName := reflect.TypeOf(handler).Name()
+	funcName := reflect.TypeOf(handler[len(handler)-1]).Name()
 	engine.Handle(funcName, handler...)
 }
 
