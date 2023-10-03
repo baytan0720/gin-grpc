@@ -92,9 +92,9 @@ func (engine *Engine) Handle(funcName string, handler ...HandlerFunc) {
 	engine.handlers[funcName] = append(engine.handlers[funcName], handler...)
 }
 
-func (engine *Engine) HandleFunc(handler HandlerFunc) {
+func (engine *Engine) HandleFunc(handler ...HandlerFunc) {
 	funcName := reflect.TypeOf(handler).Name()
-	engine.Handle(funcName, handler)
+	engine.Handle(funcName, handler...)
 }
 
 // Use registers a middleware for all rpc
