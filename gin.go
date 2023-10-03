@@ -105,7 +105,7 @@ func (engine *Engine) Use(middleware ...HandlerFunc) {
 }
 
 func (engine *Engine) allocateContext() *Context {
-	return &Context{engine: engine}
+	return &Context{engine: engine, Req: &Request{}, Resp: &Response{}}
 }
 
 func (engine *Engine) handleInterceptor() grpc.UnaryServerInterceptor {
@@ -117,32 +117,23 @@ func (engine *Engine) handleInterceptor() grpc.UnaryServerInterceptor {
 			return handler(ctx, req)
 		}
 
+		resp, _ = handler(ctx, req)
+
 		c := engine.pool.Get().(*Context)
 		defer engine.pool.Put(c)
 		c.reset()
 		c.ctx = ctx
 		c.handlers = handlers
-		c.Req = req
+		c.Req.req = req
+		c.Resp.resp = resp
 
 		c.Next()
-
-		resp, _ = handler(ctx, req)
 
 		if len(c.Errors) > 0 {
 			return nil, c.Errors[len(c.Errors)-1]
 		}
 
-		if c.Resp == nil {
-			return
-		}
-
-		if reflect.TypeOf(c.Resp) != reflect.TypeOf(resp) {
-			return nil, fmt.Errorf("internal error: response type mismatch: %s != %s", reflect.TypeOf(c.Resp).Name(), reflect.TypeOf(resp).Name())
-		}
-
-		resp = c.Resp
-
-		return
+		return c.Resp.resp, nil
 	}
 }
 

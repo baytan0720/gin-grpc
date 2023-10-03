@@ -3,7 +3,6 @@ package gin_grpc
 import (
 	"context"
 	"math"
-	"reflect"
 	"sync"
 	"time"
 )
@@ -16,8 +15,8 @@ type Context struct {
 
 	engine *Engine
 
-	Req  any
-	Resp any
+	Req  *Request
+	Resp *Response
 
 	// This mutex protects Keys map.
 	mu sync.RWMutex
@@ -35,6 +34,9 @@ const abortIndex int8 = math.MaxInt8 >> 1
 func (c *Context) reset() {
 	c.handlers = nil
 	c.index = -1
+
+	c.Req.req = nil
+	c.Resp.resp = nil
 
 	c.Keys = nil
 	c.Errors = c.Errors[:0]
@@ -102,20 +104,29 @@ func (c *Context) Error(err error) {
 	c.Errors = append(c.Errors, err)
 }
 
-// BindRequest binds the rpc request to the given type.
+// BindRequest calls Request.Bind(req)
 func (c *Context) BindRequest(req any) {
-	if reflect.TypeOf(req).Kind() != reflect.Ptr {
-		panic("req must be a pointer")
-	}
-
-	reflect.ValueOf(req).Elem().Set(reflect.ValueOf(c.Req))
-
-	return
+	c.Req.Bind(req)
 }
 
-// Response the rpc response
+// GetRequestField calls Request.GetField(field)
+func (c *Context) GetRequestField(field string) (value any) {
+	return c.Req.GetField(field)
+}
+
+// Response calls Response.Set(resp)
 func (c *Context) Response(resp any) {
-	c.Resp = resp
+	c.Resp.Set(resp)
+}
+
+// ResponseField calls Response.SetField(field, value)
+func (c *Context) ResponseField(field string, value any) {
+	c.Resp.SetField(field, value)
+}
+
+// ResponseFields calls Response.SetFields(fields)
+func (c *Context) ResponseFields(fields H) {
+	c.Resp.SetFields(fields)
 }
 
 // Set is used to store a new key/value pair exclusively for this context.
@@ -241,18 +252,4 @@ func (c *Context) GetStringMapStringSlice(key string) (smss map[string][]string)
 		smss, _ = val.(map[string][]string)
 	}
 	return
-}
-
-// StoreRequestIntoKeys stores the all params of request into keys.
-// It better be a flattening struct, not a nested struct.
-// The keys are the field names of the struct.
-func StoreRequestIntoKeys() HandlerFunc {
-	return func(c *Context) {
-		v := reflect.ValueOf(c.Req).Elem()
-		for i := 0; i < v.NumField(); i++ {
-			if v.Field(i).CanInterface() {
-				c.Set(v.Type().Field(i).Name, v.Field(i).Interface())
-			}
-		}
-	}
 }

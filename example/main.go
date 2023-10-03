@@ -23,9 +23,18 @@ func main() {
 		c.BindRequest(&req)
 		fmt.Printf("ID: %s\n", req.Id)
 		fmt.Printf("ID: %s\n", c.GetString("Id"))
+		fmt.Printf("ID: %s\n", c.Req.GetField("Id"))
 		c.Response(&proto.PongRes{
 			Status: 1,
 		})
+
+		// another way to response:
+		//
+		//c.ResponseField("Status", int32(1))
+		//
+		//c.ResponseFields(gin.H{
+		//	"Status": int32(1),
+		//})
 	})
 
 	panic(e.Run()) // listen and serve on 8080
