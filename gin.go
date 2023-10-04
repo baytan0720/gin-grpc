@@ -61,6 +61,8 @@ func (engine *Engine) Serve(l net.Listener) error {
 		return err
 	}
 
+	engine.printHandlers()
+
 	return engine.s.Serve(l)
 }
 
@@ -76,8 +78,8 @@ func (engine *Engine) Run(addr ...string) (err error) {
 		return err
 	}
 
-	engine.printHandlers()
-	debugPrint("Listening and serving HTTP on %s\n", address)
+	debugPrint("Listening and serving RPC on %s\n", address)
+
 	err = engine.Serve(l)
 
 	return
