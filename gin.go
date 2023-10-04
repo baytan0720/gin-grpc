@@ -131,8 +131,8 @@ func (engine *Engine) handleInterceptor() grpc.UnaryServerInterceptor {
 
 		c.Next()
 
-		if len(c.Errors) > 0 {
-			return nil, c.Errors[len(c.Errors)-1]
+		if c.Errors.Len() > 0 {
+			return nil, c.Errors.Last()
 		}
 
 		return c.Resp.resp, nil

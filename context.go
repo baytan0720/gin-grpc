@@ -25,7 +25,7 @@ type Context struct {
 	Keys map[string]any
 
 	// Errors is a list of errors attached to all the handlers/middlewares who used this context.
-	Errors []error
+	Errors Errors
 }
 
 // abortIndex represents a typical value used in abort functions.
@@ -39,7 +39,7 @@ func (c *Context) reset() {
 	c.Resp.resp = nil
 
 	c.Keys = nil
-	c.Errors = c.Errors[:0]
+	c.Errors.Clear()
 }
 
 // Copy returns a copy of the current context that can be safely used outside the request's scope.
@@ -101,7 +101,7 @@ func (c *Context) Error(err error) {
 		panic("err is nil")
 	}
 
-	c.Errors = append(c.Errors, err)
+	c.Errors.Append(err)
 }
 
 // BindRequest calls Request.Bind(req)
